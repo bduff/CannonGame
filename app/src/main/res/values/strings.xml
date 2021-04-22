@@ -1,9 +1,14 @@
 <resources>
    <string name="app_name">Cannon Game</string>
-   <string name="results_format">Shots fired: %1$d\nTotal time: %2$.1f</string>
-   <string name="reset_game">Reset Game</string>
+   <string name="level_results_format">Total score: %1$d\nShots fired: %2$d\nTotal time: %3$.1f</string>
+   <string name="game_results_format">Total score: %1$d\nShots fired: %2$d\nTotal time: %3$.1f\n\nTop Scores:\n%4$s</string>
+   <string name="next_level">Next Level</string>
+   <string name="play_again">Play Again</string>
+   <string name="level_win">Level %1d complete!</string>
    <string name="win">You win!</string>
-   <string name="lose">You lose!</string>
+   <string name="lose">Game over!</string>
+   <string name="level_format">Level %1d</string>
+   <string name="score_format">Score: %1d</string>
    <string name="time_remaining_format">Time remaining: %.1f seconds</string>
 
 <!-- TODO: Remove or change this placeholder text -->
