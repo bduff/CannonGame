@@ -5,7 +5,7 @@ package com.deitel.cannongame;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.DialogFragment;
+import android.support.v4.app.DialogFragment;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Canvas;
@@ -16,6 +16,7 @@ import android.media.AudioAttributes;
 import android.media.SoundPool;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.v4.app.FragmentActivity;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.SparseIntArray;
@@ -64,7 +65,7 @@ public class CannonView extends SurfaceView
    public static final double TEXT_SIZE_PERCENT = 1.0 / 18;
 
    private CannonThread cannonThread; // controls the game loop
-   private Activity activity; // to display Game Over dialog in GUI thread
+   private FragmentActivity activity; // to display Game Over dialog in GUI thread
    private boolean dialogIsDisplayed = false;
 
    // game objects
@@ -96,7 +97,7 @@ public class CannonView extends SurfaceView
    // constructor
    public CannonView(Context context, AttributeSet attrs) {
       super(context, attrs); // call superclass constructor
-      activity = (Activity) context; // store reference to MainActivity
+      activity = (FragmentActivity) context; // store reference to MainActivity
 
       // register SurfaceHolder.Callback listener
       getHolder().addCallback(this);
@@ -156,6 +157,7 @@ public class CannonView extends SurfaceView
 
    // reset all the screen elements and start a new game
    public void newGame() {
+      Log.d(TAG, "New Game Created");
       // construct a new Cannon
       cannon = new Cannon(this,
          (int) (CANNON_BASE_RADIUS_PERCENT * screenHeight),
@@ -215,7 +217,10 @@ public class CannonView extends SurfaceView
       shotsFired = 0; // set the initial number of shots fired
       totalElapsedTime = 0.0; // set the time elapsed to zero
 
+      Log.d(TAG, "Objects placed");
+
       if (gameOver) { // start a new game after the last game ended
+         Log.d(TAG, "Game Over");
          gameOver = false; // the game is not over
          cannonThread = new CannonThread(getHolder()); // create thread
          cannonThread.start(); // start the game loop thread
@@ -226,6 +231,7 @@ public class CannonView extends SurfaceView
 
    // called repeatedly by the CannonThread to update game elements
    private void updatePositions(double elapsedTimeMS) {
+      Log.d(TAG, "Update Positions");
       double interval = elapsedTimeMS / 1000.0; // convert to seconds
 
       // update cannonball's position if it is on the screen
@@ -284,46 +290,50 @@ public class CannonView extends SurfaceView
 
    // display an AlertDialog when the game ends
    private void showGameOverDialog(final int messageId) {
+
+      Log.d(TAG, "Show Game Over Dialog");
       // DialogFragment to display game stats and start new game
       final DialogFragment gameResult =
-         new DialogFragment() {
-            // create an AlertDialog and return it
-            @Override
-            public Dialog onCreateDialog(Bundle bundle) {
-               // create dialog displaying String resource for messageId
-               AlertDialog.Builder builder =
-                  new AlertDialog.Builder(getActivity());
-               builder.setTitle(getResources().getString(messageId));
+              new DialogFragment() {
+                  @Override
+                  public Dialog onCreateDialog(Bundle savedInstanceState) {
+                     int messageId = getArguments().getInt("messageId");
+                     // create dialog displaying String resource for messageId
+                     AlertDialog.Builder builder =
+                             new AlertDialog.Builder(getActivity());
+                     builder.setTitle(getResources().getString(messageId));
 
-               // display number of shots fired and total time elapsed
-               builder.setMessage(getResources().getString(
-                  R.string.results_format, shotsFired, totalElapsedTime));
-               builder.setPositiveButton(R.string.reset_game,
-                  new DialogInterface.OnClickListener() {
-                     // called when "Reset Game" Button is pressed
-                     @Override
-                     public void onClick(DialogInterface dialog,
-                        int which) {
-                        dialogIsDisplayed = false;
-                        newGame(); // set up and start a new game
-                     }
+                     Log.d(TAG, "Create Game Over Dialog");
+                     // display number of shots fired and total time elapsed
+                     builder.setMessage(getResources().getString(
+                             R.string.results_format, shotsFired, totalElapsedTime));
+                     builder.setPositiveButton(R.string.reset_game,
+                             new DialogInterface.OnClickListener() {
+                                // called when "Reset Game" Button is pressed
+                                @Override
+                                public void onClick(DialogInterface dialog,
+                                                    int which) {
+                                   dialogIsDisplayed = false;
+                                   newGame(); // set up and start a new game
+                                }
+                             }
+                     );
+                     return builder.create(); // return the AlertDialog
                   }
-               );
-
-               return builder.create(); // return the AlertDialog
-            }
-         };
+              };
 
       // in GUI thread, use FragmentManager to display the DialogFragment
       activity.runOnUiThread(
-         new Runnable() {
-            public void run() {
-               showSystemBars();
-               dialogIsDisplayed = true;
-               gameResult.setCancelable(false); // modal dialog
-               gameResult.show(activity.getFragmentManager(), "results");
-            }
-         }
+              new Runnable() {
+                 public void run() {
+                    if (activity.getSupportFragmentManager() != null) {
+                       showSystemBars();
+                       dialogIsDisplayed = true;
+                       gameResult.setCancelable(false); // modal dialog
+                       gameResult.show(activity.getSupportFragmentManager(), "results");
+                    }
+                 }
+              }
       );
    }
 
@@ -391,6 +401,8 @@ public class CannonView extends SurfaceView
 
    // stops the game: called by CannonGameFragment's onPause method
    public void stopGame() {
+
+      Log.d(TAG, "Stop Game");
       if (cannonThread != null)
          cannonThread.setRunning(false); // tell thread to terminate
    }
@@ -451,6 +463,45 @@ public class CannonView extends SurfaceView
       return true;
    }
 
+//   public static class GameOverDialogFragment extends DialogFragment {
+//
+//      public static GameOverDialogFragment newInstance(int msgId, CannonView view) {
+//         GameOverDialogFragment frag = new GameOverDialogFragment();
+//         Bundle args = new Bundle();
+//         args.putInt("messageId", msgId);
+//         frag.setArguments(args);
+//         return frag;
+//      }
+//
+//      @Override
+//      public Dialog onCreateDialog(Bundle savedInstanceState) {
+//         int messageId = getArguments().getInt("messageId");
+//         // create dialog displaying String resource for messageId
+//         AlertDialog.Builder builder =
+//                 new AlertDialog.Builder(getActivity());
+//         builder.setTitle(getResources().getString(messageId));
+//
+//
+//         Log.d(TAG, "Create Game Over Dialog");
+//         // display number of shots fired and total time elapsed
+//         builder.setMessage(getResources().getString(
+//                 R.string.results_format, shotsFired, totalElapsedTime));
+//         builder.setPositiveButton(R.string.reset_game,
+//                 new DialogInterface.OnClickListener() {
+//                    // called when "Reset Game" Button is pressed
+//                    @Override
+//                    public void onClick(DialogInterface dialog,
+//                                        int which) {
+//                       dialogIsDisplayed = false;
+//                       newGame(); // set up and start a new game
+//                    }
+//                 }
+//         );
+//
+//         return builder.create(); // return the AlertDialog
+//      }
+//   }
+
    // Thread subclass to control the game loop
    private class CannonThread extends Thread {
       private SurfaceHolder surfaceHolder; // for manipulating canvas
@@ -460,6 +511,7 @@ public class CannonView extends SurfaceView
       public CannonThread(SurfaceHolder holder) {
          surfaceHolder = holder;
          setName("CannonThread");
+         Log.d(TAG, "Cannon Thread Created");
       }
 
       // changes running state
@@ -470,6 +522,7 @@ public class CannonView extends SurfaceView
       // controls the game loop
       @Override
       public void run() {
+         Log.d(TAG, "Run Cannon Thread");
          Canvas canvas = null; // used for drawing
          long previousFrameTime = System.currentTimeMillis();
 
@@ -480,6 +533,7 @@ public class CannonView extends SurfaceView
 
                // lock the surfaceHolder for drawing
                synchronized(surfaceHolder) {
+                  Log.d(TAG, "Cannon Thread Tick");
                   long currentTime = System.currentTimeMillis();
                   double elapsedTimeMS = currentTime - previousFrameTime;
                   totalElapsedTime += elapsedTimeMS / 1000.0;
